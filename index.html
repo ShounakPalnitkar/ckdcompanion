@@ -3,185 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kidney Health Companion</title>
+    <title>KidneyGuard</title>
     <style>
+        :root {
+            --primary: #2563eb;
+            --alert: #dc2626;
+            --success: #16a34a;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             max-width: 500px;
             margin: 0 auto;
             padding: 20px;
-            background: #f5f9ff;
+            background: #f8fafc;
         }
-        h1 {
-            color: #1a6fc9;
+        .kidneyguard {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
             text-align: center;
         }
-        .tracker {
-            background: white;
+        .log-section {
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .log-entry {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-        button {
-            background: #1a6fc9;
+        .mic-btn {
+            background: var(--primary);
             color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px auto;
             cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
+            border: none;
         }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .progress {
-            height: 10px;
-            background: #e0e7ff;
-            border-radius: 5px;
+        .entry-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
             margin: 10px 0;
         }
-        .progress-fill {
-            height: 100%;
-            background: #1a6fc9;
-            border-radius: 5px;
-            width: 0%;
+        .insight-bubble {
+            background: #e0e7ff;
+            border-radius: 18px;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-<h1>Kidney Health Companion</h1>
-
-<!-- Medication Tracker -->
-<div class="tracker">
-    <h2>💊 Medications</h2>
-    <div id="med-list"></div>
-    <input type="text" id="med-name" placeholder="Medication name">
-    <button id="add-med">Add Medication</button>
-</div>
-
-<!-- Fluid Tracker -->
-<div class="tracker">
-    <h2>💧 Fluid Intake</h2>
-    <div class="progress">
-        <div class="progress-fill" id="fluid-progress"></div>
+<div class="kidneyguard">
+    <div class="header">
+        <h1>KidneyGuard</h1>
+        <p>Your voice-powered kidney health assistant</p>
     </div>
-    <p id="fluid-count">0ml / 1500ml</p>
-    <input type="number" id="fluid-amount" placeholder="Amount (ml)">
-    <button id="log-fluid">Add Intake</button>
-</div>
-
-<!-- Symptom Tracker -->
-<div class="tracker">
-    <h2>⚠️ Symptoms</h2>
-    <div id="symptom-list"></div>
-    <select id="symptom-input">
-        <option value="">Select symptom</option>
-        <option value="Fatigue">Fatigue</option>
-        <option value="Swelling">Swelling</option>
-        <option value="Nausea">Nausea</option>
-    </select>
-    <button id="log-symptom">Add Symptom</button>
+    
+    <!-- Voice Input -->
+    <div class="log-section">
+        <h3>🎤 Quick Voice Log</h3>
+        <p>Tap and say: "Water 300ml" or "Took Lisinopril"</p>
+        <button class="mic-btn" id="mic-button">🎤</button>
+        <div id="voice-status">Press mic and speak clearly</div>
+    </div>
+    
+    <!-- Today's Log -->
+    <div class="log-section">
+        <h3>📝 Today's Records</h3>
+        <div id="today-log"></div>
+    </div>
+    
+    <!-- AI Insights -->
+    <div class="log-section">
+        <h3>🔍 Personalized Insights</h3>
+        <div id="ai-insights">
+            <div class="insight-bubble">No data yet. Log entries to get insights.</div>
+        </div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="log-section">
+        <button id="print-report">📄 Print Report for Doctor</button>
+        <button id="clear-data">♻️ Clear Today's Data</button>
+    </div>
 </div>
 
 <script>
-    // Load saved data
-    let healthData = JSON.parse(localStorage.getItem('kidneyData')) || {
-        medications: [],
-        fluids: [],
-        symptoms: []
-    };
-
-    // Update display
+    // Voice Recognition
+    const micBtn = document.getElementById('mic-button');
+    const voiceStatus = document.getElementById('voice-status');
+    let recognition;
+    
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        recognition.onstart = () => {
+            voiceStatus.textContent = "Listening... Speak now";
+            micBtn.style.background = 'var(--alert)';
+        };
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.toLowerCase();
+            processVoiceCommand(transcript);
+        };
+        
+        recognition.onerror = () => {
+            voiceStatus.textContent = "Error. Try again.";
+            micBtn.style.background = 'var(--primary)';
+        };
+        
+        recognition.onend = () => {
+            micBtn.style.background = 'var(--primary)';
+        };
+    }
+    
+    micBtn.addEventListener('click', () => {
+        if (recognition) recognition.start();
+        else voiceStatus.textContent = "Voice not supported in your browser";
+    });
+    
+    // Process voice commands
+    function processVoiceCommand(command) {
+        let logEntry = {};
+        
+        if (command.includes("water") || command.includes("fluid")) {
+            const amount = parseInt(command.match(/\d+/)?.[0] || 0);
+            if (amount > 0) {
+                logEntry = {
+                    type: "fluid",
+                    amount,
+                    time: new Date().toLocaleTimeString()
+                };
+                voiceStatus.textContent = `Logged ${amount}ml water`;
+            }
+        } 
+        else if (command.includes("took") || command.includes("take")) {
+            const medName = command.replace("took", "").replace("take", "").trim();
+            if (medName) {
+                logEntry = {
+                    type: "medication",
+                    name: medName,
+                    time: new Date().toLocaleTimeString()
+                };
+                voiceStatus.textContent = `Logged ${medName} medication`;
+            }
+        }
+        else if (command.includes("symptom")) {
+            const symptom = command.replace("symptom", "").trim();
+            if (symptom) {
+                logEntry = {
+                    type: "symptom",
+                    name: symptom,
+                    time: new Date().toLocaleTimeString()
+                };
+                voiceStatus.textContent = `Logged symptom: ${symptom}`;
+            }
+        }
+        
+        if (logEntry.type) {
+            saveLogEntry(logEntry);
+            updateDisplay();
+            generateInsights();
+        } else {
+            voiceStatus.textContent = "Couldn't understand. Try: 'Water 300ml' or 'Took Lisinopril'";
+        }
+    }
+    
+    // Data Management
+    function getLogs() {
+        const today = new Date().toLocaleDateString();
+        return JSON.parse(localStorage.getItem('kidneyLogs')) || {};
+    }
+    
+    function saveLogEntry(entry) {
+        const today = new Date().toLocaleDateString();
+        const logs = getLogs();
+        if (!logs[today]) logs[today] = [];
+        logs[today].push(entry);
+        localStorage.setItem('kidneyLogs', JSON.stringify(logs));
+    }
+    
+    // Update Display
     function updateDisplay() {
-        // Medications
-        document.getElementById('med-list').innerHTML = healthData.medications
-            .map(med => `<div class="log-entry">
-                <span>${med.name}</span>
-                <button onclick="markTaken(${med.id})">${med.taken ? '✅ Taken' : '⏳ Pending'}</button>
-            </div>`)
-            .join('') || '<p>No medications added yet.</p>';
+        const today = new Date().toLocaleDateString();
+        const logs = getLogs();
+        const todayLogs = logs[today] || [];
         
-        // Fluids
-        const totalFluid = healthData.fluids.reduce((sum, f) => sum + f.amount, 0);
-        const fluidGoal = 1500;
-        document.getElementById('fluid-progress').style.width = `${Math.min(100, (totalFluid / fluidGoal) * 100)}%`;
-        document.getElementById('fluid-count').textContent = `${totalFluid}ml / ${fluidGoal}ml`;
-        
-        // Symptoms
-        document.getElementById('symptom-list').innerHTML = healthData.symptoms
-            .map(s => `<div class="log-entry">
-                <span>${s.type}</span>
-                <span>${s.time}</span>
-            </div>`)
-            .join('') || '<p>No symptoms logged today.</p>';
-        
-        // Save to local storage
-        localStorage.setItem('kidneyData', JSON.stringify(healthData));
+        document.getElementById('today-log').innerHTML = todayLogs
+            .map(entry => `
+                <div class="entry-card">
+                    <strong>${entry.type.toUpperCase()}:</strong> 
+                    ${entry.name || entry.amount + 'ml'}
+                    <small>${entry.time}</small>
+                </div>
+            `)
+            .join('') || '<p>No entries yet today.</p>';
     }
-
-    // Mark medication as taken
-    function markTaken(id) {
-        const med = healthData.medications.find(m => m.id === id);
-        if (med) med.taken = !med.taken;
-        updateDisplay();
+    
+    // AI Insights (Simple Pattern Detection)
+    function generateInsights() {
+        const logs = getLogs();
+        const today = new Date().toLocaleDateString();
+        const todayLogs = logs[today] || [];
+        
+        const symptoms = todayLogs.filter(e => e.type === "symptom");
+        const fluids = todayLogs.filter(e => e.type === "fluid");
+        const meds = todayLogs.filter(e => e.type === "medication");
+        
+        let insights = [];
+        
+        if (symptoms.length >= 3) {
+            insights.push("⚠️ You're reporting multiple symptoms today. Consider contacting your doctor.");
+        }
+        
+        if (fluids.length > 0) {
+            const totalFluid = fluids.reduce((sum, f) => sum + f.amount, 0);
+            if (totalFluid < 1000) {
+                insights.push("💧 Your fluid intake is low today. Aim for at least 1.5L.");
+            }
+        }
+        
+        if (meds.length === 0) {
+            insights.push("💊 No medications logged today. Don't forget your prescriptions!");
+        }
+        
+        document.getElementById('ai-insights').innerHTML = insights.length > 0 
+            ? insights.map(i => `<div class="insight-bubble">${i}</div>`).join('')
+            : '<div class="insight-bubble">Log more data to get personalized insights.</div>';
     }
-
-    // Add medication
-    document.getElementById('add-med').addEventListener('click', () => {
-        const name = document.getElementById('med-name').value.trim();
-        if (!name) return;
+    
+    // Print Report
+    document.getElementById('print-report').addEventListener('click', () => {
+        const logs = getLogs();
+        const today = new Date().toLocaleDateString();
+        const todayLogs = logs[today] || [];
         
-        healthData.medications.push({
-            id: Date.now(),
-            name,
-            taken: false
-        });
+        const printContent = `
+            <h1>KidneyGuard Report</h1>
+            <h2>${today}</h2>
+            <h3>Medications</h3>
+            ${todayLogs.filter(e => e.type === "medication").map(e => `
+                <p>${e.name} - ${e.time}</p>
+            `).join('') || '<p>None logged</p>'}
+            <h3>Fluid Intake</h3>
+            ${todayLogs.filter(e => e.type === "fluid").map(e => `
+                <p>${e.amount}ml - ${e.time}</p>
+            `).join('') || '<p>None logged</p>'}
+            <h3>Symptoms</h3>
+            ${todayLogs.filter(e => e.type === "symptom").map(e => `
+                <p>${e.name} - ${e.time}</p>
+            `).join('') || '<p>None logged</p>'}
+        `;
         
-        document.getElementById('med-name').value = '';
-        updateDisplay();
+        const win = window.open('', '', 'width=600,height=600');
+        win.document.write(printContent);
+        win.document.close();
+        win.print();
     });
-
-    // Log fluid
-    document.getElementById('log-fluid').addEventListener('click', () => {
-        const amount = parseInt(document.getElementById('fluid-amount').value);
-        if (!amount) return;
-        
-        healthData.fluids.push({
-            amount,
-            date: new Date().toLocaleDateString()
-        });
-        
-        document.getElementById('fluid-amount').value = '';
-        updateDisplay();
+    
+    // Clear Data
+    document.getElementById('clear-data').addEventListener('click', () => {
+        if (confirm("Clear all of today's data?")) {
+            const today = new Date().toLocaleDateString();
+            const logs = getLogs();
+            delete logs[today];
+            localStorage.setItem('kidneyLogs', JSON.stringify(logs));
+            updateDisplay();
+            document.getElementById('ai-insights').innerHTML = 
+                '<div class="insight-bubble">Data cleared. Start logging new entries.</div>';
+        }
     });
-
-    // Log symptom
-    document.getElementById('log-symptom').addEventListener('click', () => {
-        const symptom = document.getElementById('symptom-input').value;
-        if (!symptom) return;
-        
-        healthData.symptoms.push({
-            type: symptom,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        });
-        
-        document.getElementById('symptom-input').value = '';
-        updateDisplay();
-    });
-
+    
     // Initialize
     updateDisplay();
 </script>
