@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kidney Health Companion</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f9ff;
+        }
+        h1 {
+            color: #1a6fc9;
+            text-align: center;
+        }
+        .tracker {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .log-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        button {
+            background: #1a6fc9;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .progress {
+            height: 10px;
+            background: #e0e7ff;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #1a6fc9;
+            border-radius: 5px;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Kidney Health Companion</h1>
+
+<!-- Medication Tracker -->
+<div class="tracker">
+    <h2>💊 Medications</h2>
+    <div id="med-list"></div>
+    <input type="text" id="med-name" placeholder="Medication name">
+    <button id="add-med">Add Medication</button>
+</div>
+
+<!-- Fluid Tracker -->
+<div class="tracker">
+    <h2>💧 Fluid Intake</h2>
+    <div class="progress">
+        <div class="progress-fill" id="fluid-progress"></div>
+    </div>
+    <p id="fluid-count">0ml / 1500ml</p>
+    <input type="number" id="fluid-amount" placeholder="Amount (ml)">
+    <button id="log-fluid">Add Intake</button>
+</div>
+
+<!-- Symptom Tracker -->
+<div class="tracker">
+    <h2>⚠️ Symptoms</h2>
+    <div id="symptom-list"></div>
+    <select id="symptom-input">
+        <option value="">Select symptom</option>
+        <option value="Fatigue">Fatigue</option>
+        <option value="Swelling">Swelling</option>
+        <option value="Nausea">Nausea</option>
+    </select>
+    <button id="log-symptom">Add Symptom</button>
+</div>
+
+<script>
+    // Load saved data
+    let healthData = JSON.parse(localStorage.getItem('kidneyData')) || {
+        medications: [],
+        fluids: [],
+        symptoms: []
+    };
+
+    // Update display
+    function updateDisplay() {
+        // Medications
+        document.getElementById('med-list').innerHTML = healthData.medications
+            .map(med => `<div class="log-entry">
+                <span>${med.name}</span>
+                <button onclick="markTaken(${med.id})">${med.taken ? '✅ Taken' : '⏳ Pending'}</button>
+            </div>`)
+            .join('') || '<p>No medications added yet.</p>';
+        
+        // Fluids
+        const totalFluid = healthData.fluids.reduce((sum, f) => sum + f.amount, 0);
+        const fluidGoal = 1500;
+        document.getElementById('fluid-progress').style.width = `${Math.min(100, (totalFluid / fluidGoal) * 100)}%`;
+        document.getElementById('fluid-count').textContent = `${totalFluid}ml / ${fluidGoal}ml`;
+        
+        // Symptoms
+        document.getElementById('symptom-list').innerHTML = healthData.symptoms
+            .map(s => `<div class="log-entry">
+                <span>${s.type}</span>
+                <span>${s.time}</span>
+            </div>`)
+            .join('') || '<p>No symptoms logged today.</p>';
+        
+        // Save to local storage
+        localStorage.setItem('kidneyData', JSON.stringify(healthData));
+    }
+
+    // Mark medication as taken
+    function markTaken(id) {
+        const med = healthData.medications.find(m => m.id === id);
+        if (med) med.taken = !med.taken;
+        updateDisplay();
+    }
+
+    // Add medication
+    document.getElementById('add-med').addEventListener('click', () => {
+        const name = document.getElementById('med-name').value.trim();
+        if (!name) return;
+        
+        healthData.medications.push({
+            id: Date.now(),
+            name,
+            taken: false
+        });
+        
+        document.getElementById('med-name').value = '';
+        updateDisplay();
+    });
+
+    // Log fluid
+    document.getElementById('log-fluid').addEventListener('click', () => {
+        const amount = parseInt(document.getElementById('fluid-amount').value);
+        if (!amount) return;
+        
+        healthData.fluids.push({
+            amount,
+            date: new Date().toLocaleDateString()
+        });
+        
+        document.getElementById('fluid-amount').value = '';
+        updateDisplay();
+    });
+
+    // Log symptom
+    document.getElementById('log-symptom').addEventListener('click', () => {
+        const symptom = document.getElementById('symptom-input').value;
+        if (!symptom) return;
+        
+        healthData.symptoms.push({
+            type: symptom,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        
+        document.getElementById('symptom-input').value = '';
+        updateDisplay();
+    });
+
+    // Initialize
+    updateDisplay();
+</script>
+</body>
+</html>
