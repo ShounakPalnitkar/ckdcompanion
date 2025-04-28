@@ -1,106 +1,170 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kidney Health Logger</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .log-section {
-            margin-bottom: 30px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 20px;
-        }
-        textarea {
-            width: 100%;
-            height: 100px;
-            margin: 10px 0;
-        }
-        button {
-            background: #1a6fc9;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .entry {
-            background: #f5f5f5;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-        }
-    </style>
+  <title>Kidney Health Visualizer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f9ff;
+    }
+    .kidney-viz {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    .viz-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .viz-card {
+      flex: 1;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    canvas {
+      width: 100%!important;
+      height: 200px!important;
+    }
+    .log-entry {
+      background: #f0f4ff;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 8px 0;
+    }
+    button, input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
-<h1>Kidney Health Logger</h1>
-
-<div class="log-section">
-    <h2>Today's Medications</h2>
-    <textarea id="med-input" placeholder="e.g., Took Lisinopril 10mg at 8AM"></textarea>
-    <button onclick="logEntry('med')">Add Medication</button>
-    <div id="med-log"></div>
-</div>
-
-<div class="log-section">
-    <h2>Fluid Intake</h2>
-    <textarea id="fluid-input" placeholder="e.g., Drank 500ml water at 2PM"></textarea>
-    <button onclick="logEntry('fluid')">Add Fluid</button>
-    <div id="fluid-log"></div>
-</div>
-
-<div class="log-section">
-    <h2>Symptoms</h2>
-    <textarea id="symptom-input" placeholder="e.g., Mild swelling in ankles"></textarea>
-    <button onclick="logEntry('symptom')">Add Symptom</button>
-    <div id="symptom-log"></div>
+<div class="kidney-viz">
+  <h1>Kidney Health Visualizer</h1>
+  
+  <!-- Visualization Row -->
+  <div class="viz-row">
+    <div class="viz-card">
+      <h3>💊 Medication Adherence</h3>
+      <canvas id="medChart"></canvas>
+    </div>
+    <div class="viz-card">
+      <h3>💧 Fluid Intake</h3>
+      <canvas id="fluidChart"></canvas>
+    </div>
+  </div>
+  
+  <!-- Tracking Section -->
+  <div class="viz-card">
+    <h3>📝 Daily Tracker</h3>
+    <div>
+      <input type="text" id="health-input" placeholder="e.g., Took Lisinopril or Drank 300ml">
+      <button onclick="logHealthData()">Add Entry</button>
+    </div>
+    <div id="health-log"></div>
+  </div>
+  
+  <!-- Insights Section -->
+  <div class="viz-card">
+    <h3>🔍 Health Insights</h3>
+    <div id="insights">
+      <p>Log data to see personalized insights</p>
+    </div>
+  </div>
 </div>
 
 <script>
-    function logEntry(type) {
-        const input = document.getElementById(`${type}-input`);
-        const log = document.getElementById(`${type}-log`);
-        
-        if (input.value.trim() === '') return;
-        
-        const entry = document.createElement('div');
-        entry.className = 'entry';
-        entry.innerHTML = `
-            <div>${new Date().toLocaleTimeString()}</div>
-            <div>${input.value}</div>
-        `;
-        
-        log.prepend(entry);
-        input.value = '';
-        
-        // Save to local storage
-        saveLog(type, entry.innerHTML);
+  // Charts
+  const medCtx = document.getElementById('medChart').getContext('2d');
+  const fluidCtx = document.getElementById('fluidChart').getContext('2d');
+  
+  const medChart = new Chart(medCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Taken', 'Missed'],
+      datasets: [{
+        data: [0, 0],
+        backgroundColor: ['#4ade80', '#f87171']
+      }]
+    }
+  });
+  
+  const fluidChart = new Chart(fluidCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets: [{
+        label: 'Fluid (ml)',
+        data: [0,0,0,0,0,0,0],
+        backgroundColor: '#60a5fa'
+      }]
+    }
+  });
+  
+  // Data Handling
+  function logHealthData() {
+    const input = document.getElementById('health-input');
+    if (!input.value.trim()) return;
+    
+    const log = document.getElementById('health-log');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+      <span>${new Date().toLocaleTimeString()}</span>
+      <span>${input.value}</span>
+    `;
+    log.prepend(entry);
+    
+    updateCharts(input.value);
+    generateInsights();
+    input.value = '';
+  }
+  
+  function updateCharts(entry) {
+    // Simulated data update
+    if (entry.includes("Took")) {
+      medChart.data.datasets[0].data[0]++;
+    } else if (entry.includes("Drank")) {
+      const amount = parseInt(entry.match(/\d+/)?.[0] || 0;
+      fluidChart.data.datasets[0].data[new Date().getDay()] += amount;
+    }
+    medChart.update();
+    fluidChart.update();
+  }
+  
+  function generateInsights() {
+    const insights = document.getElementById('insights');
+    const medsTaken = medChart.data.datasets[0].data[0];
+    const fluids = fluidChart.data.datasets[0].data;
+    const todayFluid = fluids[new Date().getDay()];
+    
+    let html = '';
+    if (medsTaken > 0) {
+      html += `<p>✅ ${medsTaken} medications taken today</p>`;
+    }
+    if (todayFluid > 0) {
+      html += `<p>💧 ${todayFluid}ml fluids consumed`;
+      if (todayFluid < 1000) html += ` (low - aim for 1500ml)`;
+      html += `</p>`;
     }
     
-    function saveLog(type, content) {
-        const today = new Date().toLocaleDateString();
-        const logs = JSON.parse(localStorage.getItem('kidneyLogs') || {});
-        if (!logs[today]) logs[today] = { meds: [], fluids: [], symptoms: [] };
-        logs[today][`${type}s`].push(content);
-        localStorage.setItem('kidneyLogs', JSON.stringify(logs));
-    }
-    
-    // Load previous logs
-    window.onload = function() {
-        const today = new Date().toLocaleDateString();
-        const logs = JSON.parse(localStorage.getItem('kidneyLogs') || {});
-        
-        if (logs[today]) {
-            document.getElementById('med-log').innerHTML = logs[today].meds.join('');
-            document.getElementById('fluid-log').innerHTML = logs[today].fluids.join('');
-            document.getElementById('symptom-log').innerHTML = logs[today].symptoms.join('');
-        }
-    };
+    insights.innerHTML = html || '<p>Add more data for insights</p>';
+  }
 </script>
 </body>
 </html>
