@@ -1,303 +1,106 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KidneyGuard</title>
+    <title>Kidney Health Logger</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --alert: #dc2626;
-            --success: #16a34a;
-        }
         body {
-            font-family: 'Inter', sans-serif;
-            max-width: 500px;
+            font-family: Arial, sans-serif;
+            max-width: 600px;
             margin: 0 auto;
             padding: 20px;
-            background: #f8fafc;
-        }
-        .kidneyguard {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-        .header {
-            background: var(--primary);
-            color: white;
-            padding: 20px;
-            text-align: center;
+            line-height: 1.6;
         }
         .log-section {
-            padding: 20px;
-            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
         }
-        .mic-btn {
-            background: var(--primary);
-            color: white;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 10px auto;
-            cursor: pointer;
-            border: none;
-        }
-        .entry-card {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 12px;
+        textarea {
+            width: 100%;
+            height: 100px;
             margin: 10px 0;
-        }
-        .insight-bubble {
-            background: #e0e7ff;
-            border-radius: 18px;
-            padding: 10px 15px;
-            margin: 10px 0;
-            font-size: 14px;
         }
         button {
-            background: var(--primary);
+            background: #1a6fc9;
             color: white;
             border: none;
-            padding: 12px;
-            border-radius: 8px;
-            width: 100%;
-            margin-top: 10px;
+            padding: 10px 15px;
+            border-radius: 4px;
             cursor: pointer;
+        }
+        .entry {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
 
-<div class="kidneyguard">
-    <div class="header">
-        <h1>KidneyGuard</h1>
-        <p>Your voice-powered kidney health assistant</p>
-    </div>
-    
-    <!-- Voice Input -->
-    <div class="log-section">
-        <h3>🎤 Quick Voice Log</h3>
-        <p>Tap and say: "Water 300ml" or "Took Lisinopril"</p>
-        <button class="mic-btn" id="mic-button">🎤</button>
-        <div id="voice-status">Press mic and speak clearly</div>
-    </div>
-    
-    <!-- Today's Log -->
-    <div class="log-section">
-        <h3>📝 Today's Records</h3>
-        <div id="today-log"></div>
-    </div>
-    
-    <!-- AI Insights -->
-    <div class="log-section">
-        <h3>🔍 Personalized Insights</h3>
-        <div id="ai-insights">
-            <div class="insight-bubble">No data yet. Log entries to get insights.</div>
-        </div>
-    </div>
-    
-    <!-- Actions -->
-    <div class="log-section">
-        <button id="print-report">📄 Print Report for Doctor</button>
-        <button id="clear-data">♻️ Clear Today's Data</button>
-    </div>
+<h1>Kidney Health Logger</h1>
+
+<div class="log-section">
+    <h2>Today's Medications</h2>
+    <textarea id="med-input" placeholder="e.g., Took Lisinopril 10mg at 8AM"></textarea>
+    <button onclick="logEntry('med')">Add Medication</button>
+    <div id="med-log"></div>
+</div>
+
+<div class="log-section">
+    <h2>Fluid Intake</h2>
+    <textarea id="fluid-input" placeholder="e.g., Drank 500ml water at 2PM"></textarea>
+    <button onclick="logEntry('fluid')">Add Fluid</button>
+    <div id="fluid-log"></div>
+</div>
+
+<div class="log-section">
+    <h2>Symptoms</h2>
+    <textarea id="symptom-input" placeholder="e.g., Mild swelling in ankles"></textarea>
+    <button onclick="logEntry('symptom')">Add Symptom</button>
+    <div id="symptom-log"></div>
 </div>
 
 <script>
-    // Voice Recognition
-    const micBtn = document.getElementById('mic-button');
-    const voiceStatus = document.getElementById('voice-status');
-    let recognition;
-    
-    if ('webkitSpeechRecognition' in window) {
-        recognition = new webkitSpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
+    function logEntry(type) {
+        const input = document.getElementById(`${type}-input`);
+        const log = document.getElementById(`${type}-log`);
         
-        recognition.onstart = () => {
-            voiceStatus.textContent = "Listening... Speak now";
-            micBtn.style.background = 'var(--alert)';
-        };
+        if (input.value.trim() === '') return;
         
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.toLowerCase();
-            processVoiceCommand(transcript);
-        };
+        const entry = document.createElement('div');
+        entry.className = 'entry';
+        entry.innerHTML = `
+            <div>${new Date().toLocaleTimeString()}</div>
+            <div>${input.value}</div>
+        `;
         
-        recognition.onerror = () => {
-            voiceStatus.textContent = "Error. Try again.";
-            micBtn.style.background = 'var(--primary)';
-        };
+        log.prepend(entry);
+        input.value = '';
         
-        recognition.onend = () => {
-            micBtn.style.background = 'var(--primary)';
-        };
+        // Save to local storage
+        saveLog(type, entry.innerHTML);
     }
     
-    micBtn.addEventListener('click', () => {
-        if (recognition) recognition.start();
-        else voiceStatus.textContent = "Voice not supported in your browser";
-    });
-    
-    // Process voice commands
-    function processVoiceCommand(command) {
-        let logEntry = {};
-        
-        if (command.includes("water") || command.includes("fluid")) {
-            const amount = parseInt(command.match(/\d+/)?.[0] || 0);
-            if (amount > 0) {
-                logEntry = {
-                    type: "fluid",
-                    amount,
-                    time: new Date().toLocaleTimeString()
-                };
-                voiceStatus.textContent = `Logged ${amount}ml water`;
-            }
-        } 
-        else if (command.includes("took") || command.includes("take")) {
-            const medName = command.replace("took", "").replace("take", "").trim();
-            if (medName) {
-                logEntry = {
-                    type: "medication",
-                    name: medName,
-                    time: new Date().toLocaleTimeString()
-                };
-                voiceStatus.textContent = `Logged ${medName} medication`;
-            }
-        }
-        else if (command.includes("symptom")) {
-            const symptom = command.replace("symptom", "").trim();
-            if (symptom) {
-                logEntry = {
-                    type: "symptom",
-                    name: symptom,
-                    time: new Date().toLocaleTimeString()
-                };
-                voiceStatus.textContent = `Logged symptom: ${symptom}`;
-            }
-        }
-        
-        if (logEntry.type) {
-            saveLogEntry(logEntry);
-            updateDisplay();
-            generateInsights();
-        } else {
-            voiceStatus.textContent = "Couldn't understand. Try: 'Water 300ml' or 'Took Lisinopril'";
-        }
-    }
-    
-    // Data Management
-    function getLogs() {
+    function saveLog(type, content) {
         const today = new Date().toLocaleDateString();
-        return JSON.parse(localStorage.getItem('kidneyLogs')) || {};
-    }
-    
-    function saveLogEntry(entry) {
-        const today = new Date().toLocaleDateString();
-        const logs = getLogs();
-        if (!logs[today]) logs[today] = [];
-        logs[today].push(entry);
+        const logs = JSON.parse(localStorage.getItem('kidneyLogs') || {});
+        if (!logs[today]) logs[today] = { meds: [], fluids: [], symptoms: [] };
+        logs[today][`${type}s`].push(content);
         localStorage.setItem('kidneyLogs', JSON.stringify(logs));
     }
     
-    // Update Display
-    function updateDisplay() {
+    // Load previous logs
+    window.onload = function() {
         const today = new Date().toLocaleDateString();
-        const logs = getLogs();
-        const todayLogs = logs[today] || [];
+        const logs = JSON.parse(localStorage.getItem('kidneyLogs') || {});
         
-        document.getElementById('today-log').innerHTML = todayLogs
-            .map(entry => `
-                <div class="entry-card">
-                    <strong>${entry.type.toUpperCase()}:</strong> 
-                    ${entry.name || entry.amount + 'ml'}
-                    <small>${entry.time}</small>
-                </div>
-            `)
-            .join('') || '<p>No entries yet today.</p>';
-    }
-    
-    // AI Insights (Simple Pattern Detection)
-    function generateInsights() {
-        const logs = getLogs();
-        const today = new Date().toLocaleDateString();
-        const todayLogs = logs[today] || [];
-        
-        const symptoms = todayLogs.filter(e => e.type === "symptom");
-        const fluids = todayLogs.filter(e => e.type === "fluid");
-        const meds = todayLogs.filter(e => e.type === "medication");
-        
-        let insights = [];
-        
-        if (symptoms.length >= 3) {
-            insights.push("⚠️ You're reporting multiple symptoms today. Consider contacting your doctor.");
+        if (logs[today]) {
+            document.getElementById('med-log').innerHTML = logs[today].meds.join('');
+            document.getElementById('fluid-log').innerHTML = logs[today].fluids.join('');
+            document.getElementById('symptom-log').innerHTML = logs[today].symptoms.join('');
         }
-        
-        if (fluids.length > 0) {
-            const totalFluid = fluids.reduce((sum, f) => sum + f.amount, 0);
-            if (totalFluid < 1000) {
-                insights.push("💧 Your fluid intake is low today. Aim for at least 1.5L.");
-            }
-        }
-        
-        if (meds.length === 0) {
-            insights.push("💊 No medications logged today. Don't forget your prescriptions!");
-        }
-        
-        document.getElementById('ai-insights').innerHTML = insights.length > 0 
-            ? insights.map(i => `<div class="insight-bubble">${i}</div>`).join('')
-            : '<div class="insight-bubble">Log more data to get personalized insights.</div>';
-    }
-    
-    // Print Report
-    document.getElementById('print-report').addEventListener('click', () => {
-        const logs = getLogs();
-        const today = new Date().toLocaleDateString();
-        const todayLogs = logs[today] || [];
-        
-        const printContent = `
-            <h1>KidneyGuard Report</h1>
-            <h2>${today}</h2>
-            <h3>Medications</h3>
-            ${todayLogs.filter(e => e.type === "medication").map(e => `
-                <p>${e.name} - ${e.time}</p>
-            `).join('') || '<p>None logged</p>'}
-            <h3>Fluid Intake</h3>
-            ${todayLogs.filter(e => e.type === "fluid").map(e => `
-                <p>${e.amount}ml - ${e.time}</p>
-            `).join('') || '<p>None logged</p>'}
-            <h3>Symptoms</h3>
-            ${todayLogs.filter(e => e.type === "symptom").map(e => `
-                <p>${e.name} - ${e.time}</p>
-            `).join('') || '<p>None logged</p>'}
-        `;
-        
-        const win = window.open('', '', 'width=600,height=600');
-        win.document.write(printContent);
-        win.document.close();
-        win.print();
-    });
-    
-    // Clear Data
-    document.getElementById('clear-data').addEventListener('click', () => {
-        if (confirm("Clear all of today's data?")) {
-            const today = new Date().toLocaleDateString();
-            const logs = getLogs();
-            delete logs[today];
-            localStorage.setItem('kidneyLogs', JSON.stringify(logs));
-            updateDisplay();
-            document.getElementById('ai-insights').innerHTML = 
-                '<div class="insight-bubble">Data cleared. Start logging new entries.</div>';
-        }
-    });
-    
-    // Initialize
-    updateDisplay();
+    };
 </script>
 </body>
 </html>
