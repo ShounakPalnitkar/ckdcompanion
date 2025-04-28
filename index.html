@@ -1,170 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Kidney Health Visualizer</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Kidney Health Optimizer</title>
   <style>
+    :root {
+      --renal-blue: #1a6fc9;
+      --alert-red: #e63946;
+      --safe-green: #2a9d8f;
+    }
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Arial', sans-serif;
       max-width: 800px;
       margin: 0 auto;
       padding: 20px;
-      background: #f5f9ff;
+      background: #f0f8ff;
     }
-    .kidney-viz {
+    .optimizer {
       background: white;
-      border-radius: 15px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: var(--renal-blue);
+      color: white;
       padding: 20px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      text-align: center;
     }
-    .viz-row {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 30px;
+    .action-card {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
     }
-    .viz-card {
-      flex: 1;
-      background: #f8fafc;
-      border-radius: 10px;
-      padding: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    .action-card.urgent {
+      background: #fff8f8;
+      border-left: 4px solid var(--alert-red);
     }
-    canvas {
-      width: 100%!important;
-      height: 200px!important;
-    }
-    .log-entry {
-      background: #f0f4ff;
-      padding: 10px;
-      border-radius: 8px;
-      margin: 8px 0;
-    }
-    button, input {
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
+    .action-card.recommended {
+      background: #f8fff8;
+      border-left: 4px solid var(--safe-green);
     }
     button {
-      background: #2563eb;
+      background: var(--renal-blue);
       color: white;
       border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin: 10px 0;
       cursor: pointer;
+      width: 100%;
+    }
+    .progress-container {
+      height: 20px;
+      background: #f0f0f0;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s;
     }
   </style>
 </head>
 <body>
 
-<div class="kidney-viz">
-  <h1>Kidney Health Visualizer</h1>
+<div class="optimizer">
+  <div class="header">
+    <h1>Kidney Health Optimizer</h1>
+    <p>Evidence-based actions to protect your kidneys</p>
+  </div>
   
-  <!-- Visualization Row -->
-  <div class="viz-row">
-    <div class="viz-card">
-      <h3>💊 Medication Adherence</h3>
-      <canvas id="medChart"></canvas>
+  <!-- Current Status -->
+  <div class="action-card">
+    <h2>Your Kidney Health Status</h2>
+    <div class="progress-container">
+      <div class="progress-bar" id="kidneyHealthBar" style="width: 65%; background: #1a6fc9;"></div>
     </div>
-    <div class="viz-card">
-      <h3>💧 Fluid Intake</h3>
-      <canvas id="fluidChart"></canvas>
+    <p>Based on your inputs: <strong>Moderate Risk</strong></p>
+  </div>
+  
+  <!-- Urgent Actions -->
+  <div class="action-card urgent">
+    <h2>⚠️ Priority Actions</h2>
+    <div class="action-item">
+      <h3>Reduce Sodium Intake</h3>
+      <p>Your reported swelling suggests high sodium sensitivity</p>
+      <button>See 7-Day Low-Sodium Meal Plan</button>
     </div>
   </div>
   
-  <!-- Tracking Section -->
-  <div class="viz-card">
-    <h3>📝 Daily Tracker</h3>
-    <div>
-      <input type="text" id="health-input" placeholder="e.g., Took Lisinopril or Drank 300ml">
-      <button onclick="logHealthData()">Add Entry</button>
+  <!-- Recommended Actions -->
+  <div class="action-card recommended">
+    <h2>✓ Recommended Improvements</h2>
+    <div class="action-item">
+      <h3>Increase Water Intake</h3>
+      <p>You're averaging 800ml/day - target 1500ml for better toxin clearance</p>
+      <div class="progress-container">
+        <div class="progress-bar" style="width: 53%; background: var(--safe-green);"></div>
+      </div>
+      <button>Set Hydration Reminders</button>
     </div>
-    <div id="health-log"></div>
   </div>
   
-  <!-- Insights Section -->
-  <div class="viz-card">
-    <h3>🔍 Health Insights</h3>
-    <div id="insights">
-      <p>Log data to see personalized insights</p>
+  <!-- Lab Value Optimizer -->
+  <div class="action-card">
+    <h2>Lab Value Targets</h2>
+    <div class="lab-metric">
+      <h3>Blood Pressure</h3>
+      <p>Current: <span style="color: var(--alert-red)">145/92</span> | Target: <130/80</p>
+      <button>BP Reduction Strategies</button>
     </div>
+    <div class="lab-metric">
+      <h3>eGFR</h3>
+      <p>Current: 58 | Target: >60</p>
+      <button>Renal Function Tips</button>
+    </div>
+  </div>
+  
+  <!-- Progress Tracker -->
+  <div class="action-card">
+    <h2>Your 30-Day Progress</h2>
+    <div class="progress-container">
+      <div class="progress-bar" style="width: 30%; background: var(--renal-blue);"></div>
+    </div>
+    <button>View Detailed Progress Report</button>
   </div>
 </div>
 
 <script>
-  // Charts
-  const medCtx = document.getElementById('medChart').getContext('2d');
-  const fluidCtx = document.getElementById('fluidChart').getContext('2d');
-  
-  const medChart = new Chart(medCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Taken', 'Missed'],
-      datasets: [{
-        data: [0, 0],
-        backgroundColor: ['#4ade80', '#f87171']
-      }]
-    }
-  });
-  
-  const fluidChart = new Chart(fluidCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-      datasets: [{
-        label: 'Fluid (ml)',
-        data: [0,0,0,0,0,0,0],
-        backgroundColor: '#60a5fa'
-      }]
-    }
-  });
-  
-  // Data Handling
-  function logHealthData() {
-    const input = document.getElementById('health-input');
-    if (!input.value.trim()) return;
-    
-    const log = document.getElementById('health-log');
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    entry.innerHTML = `
-      <span>${new Date().toLocaleTimeString()}</span>
-      <span>${input.value}</span>
-    `;
-    log.prepend(entry);
-    
-    updateCharts(input.value);
-    generateInsights();
-    input.value = '';
+  // Dynamic action generator based on risk factors
+  function generateActions() {
+    // In a full implementation, this would analyze user data
+    // to generate personalized recommendations
+    console.log("Generating personalized kidney health actions...");
   }
   
-  function updateCharts(entry) {
-    // Simulated data update
-    if (entry.includes("Took")) {
-      medChart.data.datasets[0].data[0]++;
-    } else if (entry.includes("Drank")) {
-      const amount = parseInt(entry.match(/\d+/)?.[0] || 0;
-      fluidChart.data.datasets[0].data[new Date().getDay()] += amount;
-    }
-    medChart.update();
-    fluidChart.update();
-  }
-  
-  function generateInsights() {
-    const insights = document.getElementById('insights');
-    const medsTaken = medChart.data.datasets[0].data[0];
-    const fluids = fluidChart.data.datasets[0].data;
-    const todayFluid = fluids[new Date().getDay()];
-    
-    let html = '';
-    if (medsTaken > 0) {
-      html += `<p>✅ ${medsTaken} medications taken today</p>`;
-    }
-    if (todayFluid > 0) {
-      html += `<p>💧 ${todayFluid}ml fluids consumed`;
-      if (todayFluid < 1000) html += ` (low - aim for 1500ml)`;
-      html += `</p>`;
-    }
-    
-    insights.innerHTML = html || '<p>Add more data for insights</p>';
-  }
+  // Initialize
+  window.onload = generateActions;
 </script>
 </body>
 </html>
